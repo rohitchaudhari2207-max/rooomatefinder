@@ -74,23 +74,55 @@ Your website will be live in ~60 seconds at:
 
 ```
 ROOMMATE FINDER/
-├── index.html          # Root main entrypoint (Strictly required for GitHub Pages)
+├── index.html          # Root main entrypoint & web application UI
+├── server.js           # Express.js REST API server & static host
+├── backend/
+│   └── db.js           # SQLite database layer with auto-migration & seeding
+├── data/
+│   └── roommates.db    # SQLite database (auto-generated)
 ├── css/
 │   └── style.css       # Responsive design system, CSS variables, cards & modals
 ├── js/
-│   ├── data.js         # Initial student dataset covering Pune, Nashik, Mumbai, etc.
-│   └── app.js          # Reactive filtering, form validation, localStorage, modals
+│   ├── data.js         # Default student dataset for offline fallback & seeding
+│   └── app.js          # Reactive frontend with backend REST API auto-sync
+├── package.json        # Dependencies (express, cors) & scripts
 └── README.md           # Project documentation & presentation guide
 ```
 
 ---
 
-## 💻 Local Testing
+## ⚡ Running With Full Backend (Recommended)
 
-Simply double-click `index.html` in your file explorer to open it in Google Chrome, Microsoft Edge, Firefox, or Safari. Alternatively, serve via any static file server:
+To run with the complete **Node.js + Express + SQLite** backend:
 
-```bash
-# Optional Python static server:
-python -m http.server 8000
-```
-Then visit `http://localhost:8000` in your web browser.
+1. Install dependencies (first time only):
+   ```bash
+   npm install
+   ```
+2. Start the backend server:
+   ```bash
+   npm start
+   ```
+3. Open your browser at:
+   `http://localhost:3000`
+
+### REST API Endpoints
+
+- `GET /api/health` - Server health status
+- `GET /api/profiles` - Fetch all profiles (supports filtering by location, gender, budget, search)
+- `GET /api/profiles/:id` - Fetch single roommate profile
+- `POST /api/profiles` - Create new roommate profile
+- `PUT /api/profiles/:id` - Update roommate profile
+- `DELETE /api/profiles/:id` - Delete roommate profile
+- `GET /api/stats` - Live campus metrics & stats
+- `POST /api/messages` - Send contact inquiry message
+- `GET /api/messages/:profileId` - Retrieve messages for a profile
+- `GET /api/bookmarks` - Retrieve bookmarked profiles
+- `POST /api/bookmarks/toggle` - Toggle bookmark for a profile
+
+---
+
+## 💻 Running Statically (Offline / GitHub Pages)
+
+The frontend automatically detects whether the backend is running. If opened directly via file explorer or deployed on static hosts like GitHub Pages, it smoothly falls back to browser `localStorage` without errors.
+

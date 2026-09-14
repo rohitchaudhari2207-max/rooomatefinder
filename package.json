@@ -1,0 +1,23 @@
+{
+  "name": "roommate-finder-rcpit",
+  "version": "1.0.0",
+  "description": "Roommate Finder System - R. C. Patel Institute of Technology, Shirpur Edition",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "roommate-finder",
+    "rcpit",
+    "shirpur",
+    "express",
+    "sqlite"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}

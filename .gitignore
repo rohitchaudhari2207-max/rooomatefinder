@@ -9,5 +9,15 @@ desktop.ini
 *.swp
 *.swo
 
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Database & Data files
+data/*.db
+data/*.db-*
+*.db
+*.db-*
+
 # Log files
 *.log

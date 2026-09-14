@@ -28,17 +28,78 @@ const state = {
 const STORAGE_PROFILES_KEY = "roommate_finder_profiles_rcpit_v5";
 const STORAGE_BOOKMARKS_KEY = "roommate_finder_bookmarks_v1";
 
+let isBackendActive = false;
+let currentContactProfileId = null;
+
 // ==========================================================================
 // Initialization
 // ==========================================================================
-document.addEventListener("DOMContentLoaded", () => {
-  initStorage();
+document.addEventListener("DOMContentLoaded", async () => {
   initAvatarSelector();
   initEventListeners();
   initRentCalculator();
+  await checkBackendAndInit();
+});
+
+async function checkBackendAndInit() {
+  try {
+    const res = await fetch('/api/health');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.status === 'ok') {
+        isBackendActive = true;
+        console.log("Connected to live Roommate Finder SQLite Backend API.");
+        await loadFromBackend();
+        return;
+      }
+    }
+  } catch (e) {
+    console.log("Running in offline / static mode.");
+  }
+  initStorage();
   applyFilters();
   updateBookmarkBadge();
-});
+}
+
+async function loadFromBackend() {
+  try {
+    const [profilesRes, bookmarksRes, statsRes] = await Promise.all([
+      fetch('/api/profiles'),
+      fetch('/api/bookmarks'),
+      fetch('/api/stats')
+    ]);
+
+    if (profilesRes.ok) {
+      state.profiles = await profilesRes.json();
+    } else {
+      initStorage();
+    }
+
+    if (bookmarksRes.ok) {
+      const bks = await bookmarksRes.json();
+      state.bookmarkedIds = new Set(bks);
+    }
+
+    if (statsRes.ok) {
+      const stats = await statsRes.json();
+      updateCampusStats(stats);
+    }
+  } catch (err) {
+    console.error("Backend fetch error, reverting to local data:", err);
+    initStorage();
+  }
+  applyFilters();
+  updateBookmarkBadge();
+}
+
+function updateCampusStats(stats) {
+  if (!stats) return;
+  const statCards = document.querySelectorAll('.hero-stats .stat-card');
+  if (statCards && statCards.length >= 3) {
+    const totalEl = statCards[0].querySelector('.stat-number');
+    if (totalEl) totalEl.innerHTML = `${stats.totalProfiles || 12}<span>+</span>`;
+  }
+}
 
 function initStorage() {
   // Load profiles from LocalStorage or seed default data
@@ -641,7 +702,7 @@ window.removePill = function(index) {
 // ==========================================================================
 // Bookmarks / Saved System
 // ==========================================================================
-window.toggleBookmark = function(id) {
+window.toggleBookmark = async function(id) {
   if (state.bookmarkedIds.has(id)) {
     state.bookmarkedIds.delete(id);
     showToast("Removed from saved roommates", "info");
@@ -652,6 +713,18 @@ window.toggleBookmark = function(id) {
   saveBookmarks();
   updateBookmarkBadge();
   applyFilters();
+
+  if (isBackendActive) {
+    try {
+      await fetch('/api/bookmarks/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId: id })
+      });
+    } catch (e) {
+      console.error("Backend bookmark toggle error:", e);
+    }
+  }
 };
 
 function updateBookmarkBadge() {
@@ -665,7 +738,7 @@ function updateBookmarkBadge() {
 // ==========================================================================
 // Create Profile Logic & Real-time Validation
 // ==========================================================================
-function handleCreateProfile(e) {
+async function handleCreateProfile(e) {
   e.preventDefault();
 
   // Clear existing errors
@@ -770,8 +843,27 @@ function handleCreateProfile(e) {
     roomType: gender === "Female" ? "Girls Shared Room (Female Only)" : "Boys Shared Room (Male Only)"
   };
 
-  // Add to state and persist
-  state.profiles.unshift(newProfile);
+  // Persist to Backend API if active, with fallback to local state
+  if (isBackendActive) {
+    try {
+      const res = await fetch('/api/profiles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newProfile)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        state.profiles.unshift(json.profile || newProfile);
+      } else {
+        state.profiles.unshift(newProfile);
+      }
+    } catch (err) {
+      console.error("Backend error creating profile:", err);
+      state.profiles.unshift(newProfile);
+    }
+  } else {
+    state.profiles.unshift(newProfile);
+  }
   saveProfiles();
 
   // Reset form
@@ -889,6 +981,8 @@ window.openContactModal = function(id) {
   const profile = state.profiles.find(p => p.id === id);
   if (!profile) return;
 
+  currentContactProfileId = id;
+
   const modal = document.getElementById("contactModal");
   const modalTargetName = document.getElementById("contactModalTargetName");
   const modalPhoneDisplay = document.getElementById("contactPhoneDisplay");
@@ -919,12 +1013,31 @@ function closeAllModals() {
   document.body.style.overflow = "";
 }
 
-function handleSendMessage(e) {
+async function handleSendMessage(e) {
   e.preventDefault();
   const input = document.getElementById("contactMessageInput");
   if (!input || !input.value.trim()) {
     showToast("Please enter a short message first.", "error");
     return;
+  }
+
+  const messageText = input.value.trim();
+  const targetId = currentContactProfileId;
+
+  // If backend is active, persist message to SQLite
+  if (isBackendActive && targetId) {
+    try {
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profileId: targetId,
+          message: messageText
+        })
+      });
+    } catch (err) {
+      console.error("Backend error sending message:", err);
+    }
   }
 
   closeAllModals();
