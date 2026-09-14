@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Roommate Finder System - Exclusively for students of R. C. Patel Institute of Technology (RCPIT) and R. C. Patel Group, Shirpur. Find roommates by budget, Nimzari Naka / Karvand Road locality, and lifestyle.">
+  <meta name="keywords" content="roommate finder, RCPIT Shirpur, R C Patel, Nimzari Naka, Karvand Road, college roommates, student flat sharing, Shirpur">
+  <meta name="author" content="RCPIT Roommate Finder Team">
+  <title>Roommate Finder | R. C. Patel (RCPIT) Shirpur Campus</title>
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+  <!-- ========================================================================
+       Top Navigation Bar
+       ======================================================================== -->
+  <header class="site-header" id="header">
+    <div class="container nav-container">
+      <!-- Logo -->
+      <a href="#home" class="brand-logo" id="brandLogo">
+        <div class="brand-logo-icon">
+          <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+        </div>
+        <div class="brand-name">Roommate<span>Finder</span> <span class="nav-badge-pill" style="font-size:0.75rem; vertical-align:middle; margin-left:0.35rem;">RCPIT Shirpur</span></div>
+      </a>
+
+      <!-- Navigation Links -->
+      <nav class="nav-links" id="navLinks">
+        <a href="#home" class="nav-link active">Home</a>
+        <a href="#find-roommates" class="nav-link">Find Roommates</a>
+        <a href="#create-profile" class="nav-link">Create Profile</a>
+        <a href="#saved" class="nav-link" id="savedNavBtn">
+          Saved <span class="nav-badge-pill" id="savedBadgeCount" style="display:none;">0</span>
+        </a>
+        <a href="#calculator" class="nav-link">Rent Splitter</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="#contact" class="nav-link">Contact</a>
+      </nav>
+
+      <!-- CTA Actions -->
+      <div class="nav-actions">
+        <a href="#find-roommates" class="btn btn-secondary btn-sm">Browse</a>
+        <a href="#create-profile" class="btn btn-primary btn-sm">+ Post Profile</a>
+        <button class="mobile-menu-btn" id="mobileToggle" aria-label="Toggle Navigation Menu">
+          ☰
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       1. Home / Hero Section
+       ======================================================================== -->
+  <section class="hero-section" id="home">
+    <div class="hero-glow-blob"></div>
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span>🎓</span> Exclusively for R. C. Patel (RCPIT) Shirpur Students
+        </div>
+        <h1 class="hero-title">
+          Find an R. C. Patel roommate who matches your <span class="gradient-text">lifestyle</span>.
+        </h1>
+        <p class="hero-description">
+          Say goodbye to awkward roommate conflicts. Connect with fellow R. C. Patel Institute of Technology (RCPIT) and R. C. Patel campus students in Shirpur across Nimzari Naka, Karvand Road, Near College, and Subhash Nagar based on mutual budgets, food habits, sleep schedules, and study preferences.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="hero-cta-group">
+          <a href="#find-roommates" class="btn btn-primary" id="heroFindBtn">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            Find Roommates
+          </a>
+          <a href="#create-profile" class="btn btn-secondary" id="heroCreateBtn">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 5v14m-7-7h14"></path>
+            </svg>
+            Create Profile
+          </a>
+        </div>
+
+        <!-- Quick Search Bar -->
+        <div class="hero-quick-search" id="heroQuickSearch">
+          <div class="quick-search-col">
+            <label class="quick-search-label" for="heroQuickLocation">📍 Shirpur Area</label>
+            <select class="quick-search-select" id="heroQuickLocation">
+              <option value="all">All Shirpur Areas</option>
+              <option value="Near College">Near College</option>
+              <option value="Kazi Nagar">Kazi Nagar</option>
+              <option value="Sandipani Colony">Sandipani Colony</option>
+              <option value="Sandipani Colony 2">Sandipani Colony 2</option>
+              <option value="Nimzari Naka">Nimzari Naka</option>
+              <option value="Karvand Road">Karvand Road</option>
+            </select>
+          </div>
+
+          <div class="quick-search-col">
+            <label class="quick-search-label" for="heroQuickGender">🚻 Room Type</label>
+            <select class="quick-search-select" id="heroQuickGender">
+              <option value="all">All Rooms</option>
+              <option value="Male">👦 Boys Room (Male)</option>
+              <option value="Female">👧 Girls Room (Female)</option>
+            </select>
+          </div>
+
+          <div class="quick-search-col">
+            <label class="quick-search-label" for="heroQuickBudget">💰 Monthly Budget</label>
+            <select class="quick-search-select" id="heroQuickBudget">
+              <option value="all">Any Budget</option>
+              <option value="below3k">Below ₹3,000</option>
+              <option value="3kto5k">₹3,000 – ₹5,000</option>
+              <option value="5kto8k">₹5,000 – ₹8,000</option>
+              <option value="above8k">Above ₹8,000</option>
+            </select>
+          </div>
+
+          <button class="btn btn-accent" id="heroQuickSearchBtn" style="flex-shrink: 0;">
+            Search Matches
+          </button>
+        </div>
+
+        <!-- Campus Stats -->
+        <div class="hero-stats">
+          <div class="stat-card">
+            <div class="stat-number">800<span>+</span></div>
+            <div class="stat-label">R. C. Patel Students</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">6<span>+</span></div>
+            <div class="stat-label">Shirpur Localities</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">98<span>%</span></div>
+            <div class="stat-label">Compatibility Rate</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">₹0</div>
+            <div class="stat-label">100% Free For Students</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Features / Benefits Section
+       ======================================================================== -->
+  <section class="section" id="benefits">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Why Roommate Finder?</span>
+        <h2 class="section-title">Built specifically for college life</h2>
+        <p class="section-subtitle">No random brokers or misleading listings. Only real students with matching habits.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon-box icon-purple">🤝</div>
+          <h3>Lifestyle Alignment</h3>
+          <p>Early bird or night owl? Quiet studier or social butterfly? Filter roommates who respect your sleep cycle and habits.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box icon-teal">💰</div>
+          <h3>Budget-Friendly Sharing</h3>
+          <p>Specify exact monthly rent expectations in Indian Rupees (₹) to avoid awkward financial renegotiations later.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box icon-amber">🥗</div>
+          <h3>Dietary & Food Harmony</h3>
+          <p>Easily partner with fellow Vegetarians, Non-Vegetarians, or students comfortable with shared kitchen setups.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box icon-blue">📍</div>
+          <h3>Campus Proximity</h3>
+          <p>Find roommates attending your same college or residing in key student pockets like Nashik, Pune, Shirpur, and Mumbai.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       How It Works Section
+       ======================================================================== -->
+  <section class="section" id="how-it-works" style="background: white; border-top: 1px solid var(--border-color);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Simple Process</span>
+        <h2 class="section-title">How Roommate Finder works</h2>
+        <p class="section-subtitle">Find your dream roommate in 3 simple steps.</p>
+      </div>
+
+      <div class="steps-container">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <h3>1. Create Your Profile</h3>
+          <p>Fill in your college, preferred location, monthly budget, dietary preferences, and sleep schedule.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <h3>2. Filter by Preferences</h3>
+          <p>Use our dynamic filters to browse compatible roommates in your city who match your lifestyle requirements.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <h3>3. Connect & Move In</h3>
+          <p>Directly chat on WhatsApp or send an email to discuss flat options, schedule visits, and split rent effortlessly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       2. Find Roommates (Search & Dynamic Filtering)
+       ======================================================================== -->
+  <section class="search-section" id="find-roommates">
+    <div class="container">
+      <div class="section-header" style="text-align: left; margin-bottom: 2rem;">
+        <span class="section-tag">Browse Listings</span>
+        <h2 class="section-title" style="margin-bottom: 0.25rem;">Find Your Compatible Roommate</h2>
+        <p class="section-subtitle">Filter by city, monthly budget, food preference, sleep schedule, and lifestyle.</p>
+      </div>
+
+      <div class="search-layout">
+        <!-- Filter Sidebar -->
+        <aside class="filter-sidebar" id="filterSidebar">
+          <div class="filter-header">
+            <h2>
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+              </svg>
+              Filter Matches
+            </h2>
+            <button class="btn-clear-filter" id="clearFiltersBtn" title="Reset all filters">
+              ✕ Clear
+            </button>
+          </div>
+
+          <!-- Gender Separation Filter -->
+          <div class="filter-group">
+            <label class="filter-group-title" for="filterGender">🚻 Room Type (Separated)</label>
+            <select class="filter-select" id="filterGender">
+              <option value="all">All Rooms (Boys & Girls)</option>
+              <option value="Male">👦 Boys Room (Male Only)</option>
+              <option value="Female">👧 Girls Room (Female Only)</option>
+            </select>
+          </div>
+
+          <!-- Location Filter -->
+          <div class="filter-group">
+            <label class="filter-group-title" for="filterLocation">📍 Shirpur Locality</label>
+            <select class="filter-select" id="filterLocation">
+              <option value="all">All Shirpur Localities</option>
+              <option value="Near College">Near College</option>
+              <option value="Kazi Nagar">Kazi Nagar</option>
+              <option value="Sandipani Colony">Sandipani Colony</option>
+              <option value="Sandipani Colony 2">Sandipani Colony 2</option>
+              <option value="Nimzari Naka">Nimzari Naka</option>
+              <option value="Karvand Road">Karvand Road</option>
+            </select>
+          </div>
+
+          <!-- Budget Brackets -->
+          <div class="filter-group">
+            <span class="filter-group-title">💰 Monthly Budget (₹)</span>
+            <div class="filter-radio-list">
+              <label class="filter-radio-label">
+                <input type="radio" name="budgetRange" value="all" checked>
+                <span>Any Budget</span>
+              </label>
+              <label class="filter-radio-label">
+                <input type="radio" name="budgetRange" value="below3k">
+                <span>Below ₹3,000</span>
+              </label>
+              <label class="filter-radio-label">
+                <input type="radio" name="budgetRange" value="3kto5k">
+                <span>₹3,000 – ₹5,000</span>
+              </label>
+              <label class="filter-radio-label">
+                <input type="radio" name="budgetRange" value="5kto8k">
+                <span>₹5,000 – ₹8,000</span>
+              </label>
+              <label class="filter-radio-label">
+                <input type="radio" name="budgetRange" value="above8k">
+                <span>Above ₹8,000</span>
+              </label>
+            </div>
+
+            <!-- Max Budget Range Slider -->
+            <div class="budget-slider-wrapper">
+              <div class="budget-slider-display">
+                <span>Max Budget:</span>
+                <span id="budgetSliderVal">₹15,000</span>
+              </div>
+              <input type="range" class="range-slider" id="budgetSlider" min="2000" max="15000" step="500" value="15000">
+            </div>
+          </div>
+
+          <!-- Food Preference Filter -->
+          <div class="filter-group">
+            <label class="filter-group-title" for="filterFood">🍽️ Food Preference</label>
+            <select class="filter-select" id="filterFood">
+              <option value="all">Any Diet</option>
+              <option value="Vegetarian">Vegetarian</option>
+              <option value="Non-Vegetarian">Non-Vegetarian</option>
+              <option value="Both">Both (No Restrictions)</option>
+            </select>
+          </div>
+
+          <!-- Lifestyle Filter -->
+          <div class="filter-group">
+            <label class="filter-group-title" for="filterLifestyle">🤝 Lifestyle</label>
+            <select class="filter-select" id="filterLifestyle">
+              <option value="all">Any Lifestyle</option>
+              <option value="Quiet">Quiet</option>
+              <option value="Social">Social</option>
+              <option value="Moderate">Moderate</option>
+            </select>
+          </div>
+
+          <!-- Sleep Schedule Filter -->
+          <div class="filter-group">
+            <label class="filter-group-title" for="filterSleep">🌙 Sleep Schedule</label>
+            <select class="filter-select" id="filterSleep">
+              <option value="all">Any Schedule</option>
+              <option value="Early Sleeper">Early Sleeper</option>
+              <option value="Night Owl">Night Owl</option>
+              <option value="Flexible">Flexible</option>
+            </select>
+          </div>
+
+          <!-- Study Preference Filter -->
+          <div class="filter-group">
+            <label class="filter-group-title" for="filterStudy">📚 Study Preference</label>
+            <select class="filter-select" id="filterStudy">
+              <option value="all">Any Style</option>
+              <option value="Quiet">Quiet Study</option>
+              <option value="Group Study">Group Study</option>
+              <option value="Flexible">Flexible</option>
+            </select>
+          </div>
+        </aside>
+
+        <!-- Right Side: Search Toolbar, Pills & Cards -->
+        <main class="roommates-main">
+          <!-- Gender Separate Accommodation Tabs -->
+          <div class="gender-filter-tabs" id="genderTabs" role="tablist">
+            <button class="gender-tab-btn active" data-gender="all" onclick="setGenderFilter('all')">
+              🏢 All Accommodations
+            </button>
+            <button class="gender-tab-btn tab-boy" data-gender="Male" onclick="setGenderFilter('Male')">
+              👦 Boys Rooms (Male Only)
+            </button>
+            <button class="gender-tab-btn tab-girl" data-gender="Female" onclick="setGenderFilter('Female')">
+              👧 Girls Rooms (Female Only)
+            </button>
+          </div>
+
+          <!-- Toolbar -->
+          <div class="search-toolbar">
+            <div class="search-input-box">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="searchInput" placeholder="Search by name, college, area, or keywords...">
+            </div>
+
+            <div class="toolbar-controls">
+              <div class="results-count" id="resultsCount">
+                Showing <span>0</span> roommates
+              </div>
+
+              <select class="sort-select" id="sortSelect" aria-label="Sort Roommates">
+                <option value="default">Sort: Default</option>
+                <option value="budget-low">Budget: Low to High</option>
+                <option value="budget-high">Budget: High to Low</option>
+                <option value="age-young">Age: Youngest</option>
+                <option value="age-old">Age: Oldest</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Active Filter Pills Bar -->
+          <div class="active-filters-bar" id="activeFiltersBar"></div>
+
+          <!-- Dynamic Grid of Profiles -->
+          <div class="roommates-grid" id="roommatesGrid">
+            <!-- Dynamically populated by app.js -->
+          </div>
+        </main>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       3. Create Profile Section
+       ======================================================================== -->
+  <section class="create-section" id="create-profile">
+    <div class="container">
+      <div class="form-wrapper">
+        <div class="form-header">
+          <h2>Create Your Roommate Profile</h2>
+          <p>Publish your details so compatible college students can find you. Your profile is saved locally in your browser!</p>
+        </div>
+
+        <div class="form-notice">
+          💡 <strong>Student Privacy Tip:</strong> We never share passwords or sensitive credentials. Demo data persists directly in your local browser storage.
+        </div>
+
+        <form id="createProfileForm" novalidate>
+          <div class="form-grid">
+            <!-- Full Name -->
+            <div class="form-group">
+              <label class="form-label" for="fullName">Full Name <span class="required">*</span></label>
+              <input type="text" class="form-control" id="fullName" name="fullName" placeholder="e.g. Rahul Patil" required>
+              <span class="form-error-msg" id="nameError"></span>
+            </div>
+
+            <!-- Age -->
+            <div class="form-group">
+              <label class="form-label" for="age">Age <span class="required">*</span></label>
+              <input type="number" class="form-control" id="age" name="age" min="16" max="40" placeholder="e.g. 20" required>
+              <span class="form-error-msg" id="ageError"></span>
+            </div>
+
+            <!-- Gender -->
+            <div class="form-group">
+              <label class="form-label" for="gender">Gender / Room Type <span class="required">*</span></label>
+              <select class="form-control" id="gender" name="gender" required>
+                <option value="Male">Male (Looking for Boys Room/Flat)</option>
+                <option value="Female">Female (Looking for Girls Room/Flat)</option>
+              </select>
+            </div>
+
+            <!-- College Name -->
+            <div class="form-group">
+              <label class="form-label" for="college">College / Institute <span class="required">*</span></label>
+              <input type="text" class="form-control" id="college" name="college" value="R. C. Patel Institute of Technology, Shirpur" readonly style="background:#f1f5f9; cursor:not-allowed;" required>
+              <span class="form-error-msg" id="collegeError"></span>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+              <label class="form-label" for="email">Student Email <span class="required">*</span></label>
+              <input type="email" class="form-control" id="email" name="email" placeholder="e.g. rahul.student@rcpit.ac.in" required>
+              <span class="form-error-msg" id="emailError"></span>
+            </div>
+
+            <!-- Phone -->
+            <div class="form-group">
+              <label class="form-label" for="phone">Phone / WhatsApp Number <span class="required">*</span></label>
+              <input type="tel" class="form-control" id="phone" name="phone" placeholder="e.g. 9823456789 (10 digits)" required>
+              <span class="form-error-msg" id="phoneError"></span>
+            </div>
+
+            <!-- Location -->
+            <div class="form-group">
+              <label class="form-label" for="location">Shirpur Locality <span class="required">*</span></label>
+              <select class="form-control" id="location" name="location" required>
+                <option value="">-- Select Shirpur Area --</option>
+                <option value="Near College, Shirpur">Near College, Shirpur</option>
+                <option value="Kazi Nagar, Shirpur">Kazi Nagar, Shirpur</option>
+                <option value="Sandipani Colony, Shirpur">Sandipani Colony, Shirpur</option>
+                <option value="Sandipani Colony 2, Shirpur">Sandipani Colony 2, Shirpur</option>
+                <option value="Nimzari Naka, Shirpur">Nimzari Naka, Shirpur</option>
+                <option value="Karvand Road, Shirpur">Karvand Road, Shirpur</option>
+              </select>
+              <span class="form-error-msg" id="locationError"></span>
+            </div>
+
+            <!-- Monthly Budget -->
+            <div class="form-group">
+              <label class="form-label" for="monthlyBudget">Monthly Budget (₹) <span class="required">*</span></label>
+              <input type="number" class="form-control" id="monthlyBudget" name="monthlyBudget" min="1000" max="50000" step="100" placeholder="e.g. 4500" required>
+              <span class="form-error-msg" id="budgetError"></span>
+            </div>
+
+            <!-- Food Preference -->
+            <div class="form-group">
+              <label class="form-label" for="foodPreference">Food Preference <span class="required">*</span></label>
+              <select class="form-control" id="foodPreference" name="foodPreference" required>
+                <option value="Vegetarian">Vegetarian</option>
+                <option value="Non-Vegetarian">Non-Vegetarian</option>
+                <option value="Both">Both</option>
+              </select>
+            </div>
+
+            <!-- Sleep Schedule -->
+            <div class="form-group">
+              <label class="form-label" for="sleepSchedule">Sleep Schedule <span class="required">*</span></label>
+              <select class="form-control" id="sleepSchedule" name="sleepSchedule" required>
+                <option value="Early Sleeper">Early Sleeper</option>
+                <option value="Night Owl">Night Owl</option>
+                <option value="Flexible">Flexible</option>
+              </select>
+            </div>
+
+            <!-- Study Preference -->
+            <div class="form-group">
+              <label class="form-label" for="studyPreference">Study Preference <span class="required">*</span></label>
+              <select class="form-control" id="studyPreference" name="studyPreference" required>
+                <option value="Quiet">Quiet</option>
+                <option value="Group Study">Group Study</option>
+                <option value="Flexible">Flexible</option>
+              </select>
+            </div>
+
+            <!-- Lifestyle -->
+            <div class="form-group">
+              <label class="form-label" for="lifestyle">Lifestyle <span class="required">*</span></label>
+              <select class="form-control" id="lifestyle" name="lifestyle" required>
+                <option value="Quiet">Quiet</option>
+                <option value="Social">Social</option>
+                <option value="Moderate">Moderate</option>
+              </select>
+            </div>
+
+            <!-- Avatar Preset Selector -->
+            <div class="form-col-full">
+              <label class="form-label">Choose Your Profile Avatar</label>
+              <div class="avatar-selector" id="avatarSelector">
+                <!-- Injected via JavaScript -->
+              </div>
+            </div>
+
+            <!-- Lifestyle Habits & Tags -->
+            <div class="form-col-full">
+              <div class="form-group">
+                <label class="form-label" for="habits">Habits / Highlights (comma separated)</label>
+                <input type="text" class="form-control" id="habits" name="habits" placeholder="e.g. Non-Smoker, Neat freak, Gym-goer, Early riser, Coding enthusiast">
+              </div>
+            </div>
+
+            <!-- About Me -->
+            <div class="form-col-full">
+              <div class="form-group">
+                <label class="form-label" for="about">About Me & Flat Requirements <span class="required">*</span></label>
+                <textarea class="form-control" id="about" name="about" rows="3" placeholder="Tell potential roommates about your course year, daily routine, cleanliness expectations, or specific area you want to rent in..." required></textarea>
+                <span class="form-error-msg" id="aboutError"></span>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="form-col-full" style="margin-top: 1rem;">
+              <button type="submit" class="btn btn-primary" id="submitProfileBtn" style="width: 100%; padding: 0.9rem;">
+                🚀 Publish Profile & Find Roommates
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Rent & Bill Split Calculator Section
+       ======================================================================== -->
+  <section class="calc-section" id="calculator">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Student Utility</span>
+        <h2 class="section-title">Rent & Expense Split Calculator</h2>
+        <p class="section-subtitle">Calculate exact per-student monthly share in Shirpur including rent, electricity, wifi, and mess bills.</p>
+      </div>
+
+      <div class="calc-card">
+        <div class="calc-grid">
+          <div class="calc-inputs">
+            <div class="calc-inputs-grid">
+              <div class="form-group">
+                <label class="form-label" for="calcFlatRent">Total Flat Rent (₹)</label>
+                <input type="number" class="form-control" id="calcFlatRent" value="6000" min="1000" step="100">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="calcElectricity">Electricity & Water (₹)</label>
+                <input type="number" class="form-control" id="calcElectricity" value="800" min="0" step="50">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="calcWifi">WiFi / Internet (₹)</label>
+                <input type="number" class="form-control" id="calcWifi" value="600" min="0" step="50">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="calcRoommates">Number of Roommates</label>
+                <select class="form-control" id="calcRoommates">
+                  <option value="2" selected>2 Students (Twin Sharing)</option>
+                  <option value="3">3 Students (Triple Sharing)</option>
+                  <option value="4">4 Students (Quad Sharing)</option>
+                  <option value="5">5 Students</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="calc-result-box">
+            <div class="calc-result-title">Your Monthly Share</div>
+            <div class="calc-result-amount" id="calcShareDisplay">₹3,700</div>
+            <div class="calc-result-sub" id="calcTotalSummary">Total Flat Cost: ₹7,400 ÷ 2 students</div>
+            <button class="btn btn-secondary btn-sm" id="calcCopyBtn" style="background:white; color:var(--text-primary); width:100%;">
+              📋 Copy Breakdown for WhatsApp
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       FAQ & Contact Section
+       ======================================================================== -->
+  <section class="contact-section" id="contact">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Student Support</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-subtitle">Everything you need to know about finding and connecting with student flatmates.</p>
+      </div>
+
+      <div class="faq-grid">
+        <div class="faq-item">
+          <h4>Is Roommate Finder free for students?</h4>
+          <p>Yes, 100% free! College students can create profiles, search listings, and contact potential roommates without any brokerage or subscription fees.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>Does my newly created profile stay saved?</h4>
+          <p>Yes! Profiles are saved directly inside your browser's persistent LocalStorage, so your listing remains available without needing any remote server or database.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>How do I contact another student?</h4>
+          <p>Click the "Contact" button on any profile card to view their verified student phone number, email address, or open a pre-filled direct WhatsApp chat.</p>
+        </div>
+
+        <div class="faq-item">
+          <h4>Which college locations are supported?</h4>
+          <p>We feature student clusters across Maharashtra including Nashik, Pune, Mumbai, Jalgaon, Dhule, and Shirpur, covering engineering, medical, and arts colleges.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       Site Footer
+       ======================================================================== -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h3>
+            <span style="color:var(--primary)">🏠</span> Roommate Finder
+          </h3>
+          <p>The student-first platform for discovering compatible roommates based on lifestyle, budget, and study routines.</p>
+          <p style="font-size: 0.8rem; color: #64748b;">Designed for seamless deployment on GitHub Pages.</p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Quick Navigation</h4>
+          <ul class="footer-links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#find-roommates">Find Roommates</a></li>
+            <li><a href="#create-profile">Create Profile</a></li>
+            <li><a href="#how-it-works">How It Works</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Shirpur Student Hubs</h4>
+          <ul class="footer-links">
+            <li><a href="#find-roommates" onclick="document.getElementById('filterLocation').value='Near College'; document.getElementById('filterLocation').dispatchEvent(new Event('change'));">Near College</a></li>
+            <li><a href="#find-roommates" onclick="document.getElementById('filterLocation').value='Kazi Nagar'; document.getElementById('filterLocation').dispatchEvent(new Event('change'));">Kazi Nagar</a></li>
+            <li><a href="#find-roommates" onclick="document.getElementById('filterLocation').value='Sandipani Colony'; document.getElementById('filterLocation').dispatchEvent(new Event('change'));">Sandipani Colony</a></li>
+            <li><a href="#find-roommates" onclick="document.getElementById('filterLocation').value='Sandipani Colony 2'; document.getElementById('filterLocation').dispatchEvent(new Event('change'));">Sandipani Colony 2</a></li>
+            <li><a href="#find-roommates" onclick="document.getElementById('filterLocation').value='Nimzari Naka'; document.getElementById('filterLocation').dispatchEvent(new Event('change'));">Nimzari Naka</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Contact Project</h4>
+          <p style="font-size: 0.88rem; margin-bottom: 0.5rem;">College Mini Project Submission</p>
+          <p style="font-size: 0.88rem; color: #cbd5e1;">Email: support@roommatefinder.local</p>
+          <p style="font-size: 0.88rem; color: #cbd5e1;">GitHub Pages Compatible</p>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 Roommate Finder System. Built with HTML, CSS, and Vanilla JavaScript.</div>
+        <div>Zero backend required &bull; Ready for GitHub Pages</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================================================
+       Modals
+       ======================================================================== -->
+
+  <!-- 1. Full Profile Details Modal -->
+  <div class="modal-overlay" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="profileModalTitle" style="font-size: 1.15rem; font-weight: 700;">Student Roommate Profile</h3>
+        <button class="modal-close-btn" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body" id="profileModalBody">
+        <!-- Dynamically injected via app.js -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm modal-close-btn">Close</button>
+        <button class="btn btn-primary btn-sm" id="profileModalContactBtn">Contact Roommate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Direct Contact Modal -->
+  <div class="modal-overlay" id="contactModal" role="dialog" aria-modal="true" aria-labelledby="contactModalTitle">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 id="contactModalTitle" style="font-size: 1.15rem; font-weight: 700;">
+          Connect with <span id="contactModalTargetName">Roommate</span>
+        </h3>
+        <button class="modal-close-btn" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="contact-modal-info">
+          <div class="contact-item-row">
+            <span>📞</span>
+            <strong>Phone:</strong>
+            <span id="contactPhoneDisplay">+91 98000 00000</span>
+          </div>
+          <div class="contact-item-row">
+            <span>✉️</span>
+            <strong>Email:</strong>
+            <span id="contactEmailDisplay">student@college.edu</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+          <a href="#" target="_blank" rel="noopener noreferrer" class="btn btn-accent" id="contactWhatsAppBtn" style="width: 100%;">
+            💬 Chat via WhatsApp
+          </a>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 1rem; color: var(--text-muted); font-size: 0.85rem;">
+          — OR SEND A DIRECT QUICK MESSAGE —
+        </div>
+
+        <form id="directMessageForm">
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" for="contactMessageInput">Your Message</label>
+            <textarea class="form-control" id="contactMessageInput" rows="3" placeholder="Hi! I liked your roommate profile and wanted to discuss sharing a flat..." required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">
+            Send Quick Message 🚀
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       Toast Notification Container
+       ======================================================================== -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- ========================================================================
+       Scripts
+       ======================================================================== -->
+  <script src="./js/data.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
