@@ -9,6 +9,8 @@ const state = {
   filteredProfiles: [],
   bookmarkedIds: new Set(),
   selectedAvatar: "👨‍🎓",
+  selectedInboxProfileId: null,
+  inboxMessages: [],
   filters: {
     location: "all",
     gender: "all",
@@ -27,6 +29,7 @@ const state = {
 // Storage Keys
 const STORAGE_PROFILES_KEY = "roommate_finder_profiles_rcpit_v5";
 const STORAGE_BOOKMARKS_KEY = "roommate_finder_bookmarks_v1";
+const STORAGE_MESSAGES_KEY = "roommate_finder_messages_v1";
 
 let isBackendActive = false;
 let currentContactProfileId = null;
@@ -59,6 +62,7 @@ async function checkBackendAndInit() {
   initStorage();
   applyFilters();
   updateBookmarkBadge();
+  updateInboxBadge();
 }
 
 async function loadFromBackend() {
@@ -90,6 +94,7 @@ async function loadFromBackend() {
   }
   applyFilters();
   updateBookmarkBadge();
+  updateInboxBadge();
 }
 
 function updateCampusStats(stats) {
@@ -328,6 +333,35 @@ function initEventListeners() {
       scrollToSection("find-roommates");
       if (state.filters.onlySaved) {
         showToast("Showing your bookmarked roommates", "info");
+      }
+    });
+  }
+
+  // Inbox Nav Button
+  const inboxNavBtn = document.getElementById("inboxNavBtn");
+  if (inboxNavBtn) {
+    inboxNavBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      openInboxModal();
+    });
+  }
+
+  // Inbox Profile Switcher
+  const inboxProfileSelect = document.getElementById("inboxProfileSelect");
+  if (inboxProfileSelect) {
+    inboxProfileSelect.addEventListener("change", (e) => {
+      state.selectedInboxProfileId = e.target.value;
+      loadInboxMessages(e.target.value);
+    });
+  }
+
+  // Inbox Refresh Button
+  const refreshInboxBtn = document.getElementById("refreshInboxBtn");
+  if (refreshInboxBtn) {
+    refreshInboxBtn.addEventListener("click", () => {
+      if (state.selectedInboxProfileId) {
+        loadInboxMessages(state.selectedInboxProfileId);
+        showToast("Inbox refreshed 🔄", "info");
       }
     });
   }
@@ -1015,13 +1049,18 @@ function closeAllModals() {
 
 async function handleSendMessage(e) {
   e.preventDefault();
-  const input = document.getElementById("contactMessageInput");
-  if (!input || !input.value.trim()) {
+  const nameInput = document.getElementById("contactSenderName");
+  const contactInput = document.getElementById("contactSenderContact");
+  const messageInput = document.getElementById("contactMessageInput");
+
+  if (!messageInput || !messageInput.value.trim()) {
     showToast("Please enter a short message first.", "error");
     return;
   }
 
-  const messageText = input.value.trim();
+  const senderName = nameInput && nameInput.value.trim() ? nameInput.value.trim() : "Anonymous Student";
+  const senderContact = contactInput && contactInput.value.trim() ? contactInput.value.trim() : "";
+  const messageText = messageInput.value.trim();
   const targetId = currentContactProfileId;
 
   // If backend is active, persist message to SQLite
@@ -1032,17 +1071,251 @@ async function handleSendMessage(e) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           profileId: targetId,
+          senderName: senderName,
+          senderContact: senderContact,
           message: messageText
         })
       });
     } catch (err) {
       console.error("Backend error sending message:", err);
     }
+  } else if (targetId) {
+    // LocalStorage fallback for offline / GitHub Pages mode
+    const stored = getLocalMessages();
+    stored.unshift({
+      id: Date.now(),
+      profile_id: targetId,
+      profileId: targetId,
+      sender_name: senderName,
+      senderName: senderName,
+      sender_contact: senderContact,
+      senderContact: senderContact,
+      message: messageText,
+      created_at: new Date().toISOString()
+    });
+    localStorage.setItem(STORAGE_MESSAGES_KEY, JSON.stringify(stored));
   }
 
   closeAllModals();
   showToast("Message sent to roommate! They will reply soon. 🚀", "success");
-  input.value = "";
+  if (nameInput) nameInput.value = "";
+  if (contactInput) contactInput.value = "";
+  messageInput.value = "";
+  updateInboxBadge();
+}
+
+// ==========================================================================
+// Roommate Inbox Controller
+// ==========================================================================
+function getLocalMessages() {
+  try {
+    const raw = localStorage.getItem(STORAGE_MESSAGES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+async function updateInboxBadge() {
+  const badge = document.getElementById("inboxBadgeCount");
+  if (!badge) return;
+
+  let totalCount = 0;
+  if (isBackendActive) {
+    try {
+      const res = await fetch('/api/messages');
+      if (res.ok) {
+        const msgs = await res.json();
+        totalCount = Array.isArray(msgs) ? msgs.length : 0;
+      }
+    } catch (e) {
+      totalCount = getLocalMessages().length;
+    }
+  } else {
+    totalCount = getLocalMessages().length;
+  }
+
+  if (totalCount > 0) {
+    badge.textContent = totalCount > 99 ? "99+" : totalCount;
+    badge.style.display = "inline-block";
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+window.openInboxModal = async function(preferredProfileId = null) {
+  const modal = document.getElementById("inboxModal");
+  const select = document.getElementById("inboxProfileSelect");
+  if (!modal || !select) return;
+
+  // Populate profiles in dropdown
+  select.innerHTML = "";
+  if (!state.profiles || state.profiles.length === 0) {
+    select.innerHTML = `<option value="">No profiles available</option>`;
+    state.selectedInboxProfileId = null;
+  } else {
+    state.profiles.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = `${p.avatar || '👤'} ${p.name} (${p.gender === 'Female' ? 'Girls Room' : 'Boys Room'})`;
+      select.appendChild(opt);
+    });
+
+    const targetId = preferredProfileId || state.selectedInboxProfileId || state.profiles[0].id;
+    select.value = targetId;
+    state.selectedInboxProfileId = targetId;
+  }
+
+  modal.classList.add("active");
+  document.body.style.overflow = "hidden";
+
+  if (state.selectedInboxProfileId) {
+    await loadInboxMessages(state.selectedInboxProfileId);
+  } else {
+    renderInboxMessages([]);
+  }
+};
+
+async function loadInboxMessages(profileId) {
+  if (!profileId) {
+    renderInboxMessages([]);
+    return;
+  }
+
+  let messages = [];
+  if (isBackendActive) {
+    try {
+      const res = await fetch(`/api/messages/${encodeURIComponent(profileId)}`);
+      if (res.ok) {
+        messages = await res.json();
+      }
+    } catch (e) {
+      console.error("Error loading messages from backend:", e);
+      messages = getLocalMessages().filter(m => (m.profile_id || m.profileId) === profileId);
+    }
+  } else {
+    messages = getLocalMessages().filter(m => (m.profile_id || m.profileId) === profileId);
+  }
+
+  state.inboxMessages = messages;
+  renderInboxMessages(messages);
+  updateInboxBadge();
+}
+
+function renderInboxMessages(messages) {
+  const listEl = document.getElementById("inboxMessageList");
+  const emptyEl = document.getElementById("inboxEmptyState");
+  const countEl = document.getElementById("inboxCountSummary");
+  if (!listEl || !emptyEl) return;
+
+  if (!messages || messages.length === 0) {
+    listEl.innerHTML = "";
+    listEl.style.display = "none";
+    emptyEl.style.display = "block";
+    if (countEl) countEl.textContent = "0 inquiries";
+    return;
+  }
+
+  emptyEl.style.display = "none";
+  listEl.style.display = "flex";
+  if (countEl) countEl.textContent = `${messages.length} ${messages.length === 1 ? 'inquiry' : 'inquiries'}`;
+
+  listEl.innerHTML = messages.map(msg => {
+    const sender = escapeHtml(msg.sender_name || msg.senderName || "Anonymous Student");
+    const contact = escapeHtml(msg.sender_contact || msg.senderContact || "");
+    const dateStr = formatMessageDate(msg.created_at || msg.createdAt);
+    const text = escapeHtml(msg.message || "");
+    const id = msg.id;
+
+    // Direct reply actions
+    let contactBtnHtml = "";
+    if (contact) {
+      const cleanPhone = contact.replace(/[^0-9]/g, "");
+      if (cleanPhone.length >= 10) {
+        const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent("Hi! Thanks for reaching out about flat accommodation on Roommate Finder.")}`;
+        contactBtnHtml += `
+          <a href="${waUrl}" target="_blank" rel="noopener noreferrer" class="inbox-action-btn inbox-btn-whatsapp">
+            💬 WhatsApp
+          </a>
+          <a href="tel:${cleanPhone}" class="inbox-action-btn inbox-btn-phone">
+            📞 Call
+          </a>
+        `;
+      } else if (contact.includes("@")) {
+        contactBtnHtml += `
+          <a href="mailto:${contact}?subject=Roommate%20Inquiry%20Response" class="inbox-action-btn inbox-btn-phone">
+            ✉️ Email
+          </a>
+        `;
+      }
+    }
+
+    return `
+      <div class="inbox-msg-card is-new" id="inbox-msg-${id}">
+        <div class="inbox-msg-top">
+          <div class="inbox-msg-sender-info">
+            <div class="inbox-msg-sender-name">
+              <span>👤</span> ${sender}
+            </div>
+            ${contact 
+              ? `<span class="inbox-msg-contact-badge">📞 ${contact}</span>` 
+              : `<span class="inbox-msg-contact-badge" style="background:#f1f5f9; color:#64748b;">No contact provided</span>`}
+          </div>
+          <div class="inbox-msg-meta">
+            <span>🕒 ${dateStr}</span>
+          </div>
+        </div>
+        <div class="inbox-msg-content">
+          ${text}
+        </div>
+        <div class="inbox-msg-actions">
+          <div class="inbox-msg-actions-left">
+            ${contactBtnHtml}
+          </div>
+          <button type="button" class="inbox-btn-delete" onclick="deleteInboxMessage(${id})" title="Delete this inquiry">
+            🗑️ Delete
+          </button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+window.deleteInboxMessage = async function(id) {
+  if (!confirm("Are you sure you want to delete this inquiry?")) return;
+
+  if (isBackendActive) {
+    try {
+      const res = await fetch(`/api/messages/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        showToast("Could not delete message on server", "error");
+        return;
+      }
+    } catch (err) {
+      console.error("Delete message error:", err);
+    }
+  } else {
+    const msgs = getLocalMessages().filter(m => m.id !== id);
+    localStorage.setItem(STORAGE_MESSAGES_KEY, JSON.stringify(msgs));
+  }
+
+  showToast("Inquiry deleted successfully", "info");
+  if (state.selectedInboxProfileId) {
+    await loadInboxMessages(state.selectedInboxProfileId);
+  }
+  updateInboxBadge();
+};
+
+function formatMessageDate(dateInput) {
+  if (!dateInput) return "Recently";
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return "Recently";
+  return d.toLocaleDateString("en-IN", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 // ==========================================================================

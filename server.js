@@ -229,7 +229,32 @@ app.get('/api/messages/:profileId', (req, res) => {
   }
 });
 
-// 12. Reseed Database (development/demo utility)
+// 12. Get All Messages (or for inbox stats)
+app.get('/api/messages', (req, res) => {
+  try {
+    const messages = db.getAllMessages();
+    res.json(messages);
+  } catch (error) {
+    console.error('Error fetching all messages:', error);
+    res.status(500).json({ error: 'Failed to retrieve messages' });
+  }
+});
+
+// 13. Delete a Message by ID
+app.delete('/api/messages/:id', (req, res) => {
+  try {
+    const success = db.deleteMessage(req.params.id);
+    if (!success) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+    res.json({ message: 'Message deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    res.status(500).json({ error: 'Failed to delete message' });
+  }
+});
+
+// 14. Reseed Database (development/demo utility)
 app.post('/api/seed', (req, res) => {
   try {
     const result = db.reseedDatabase();

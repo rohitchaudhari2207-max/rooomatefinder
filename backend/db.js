@@ -595,6 +595,16 @@ function getMessagesByProfile(profileId) {
   return db.prepare('SELECT * FROM messages WHERE profile_id = ? ORDER BY created_at DESC').all(profileId);
 }
 
+function getAllMessages() {
+  return db.prepare('SELECT * FROM messages ORDER BY created_at DESC').all();
+}
+
+function deleteMessage(id) {
+  const stmt = db.prepare('DELETE FROM messages WHERE id = ?');
+  const result = stmt.run(id);
+  return result.changes > 0;
+}
+
 // Stats
 function getStats() {
   const totalProfiles = db.prepare('SELECT COUNT(*) as count FROM profiles').get().count;
@@ -638,6 +648,9 @@ module.exports = {
   toggleBookmark,
   createMessage,
   getMessagesByProfile,
+  getAllMessages,
+  deleteMessage,
   getStats,
   reseedDatabase
 };
+

@@ -41,6 +41,9 @@
         <a href="#saved" class="nav-link" id="savedNavBtn">
           Saved <span class="nav-badge-pill" id="savedBadgeCount" style="display:none;">0</span>
         </a>
+        <a href="#inbox" class="nav-link" id="inboxNavBtn">
+          Inbox 📬 <span class="nav-badge-pill" id="inboxBadgeCount" style="display:none;">0</span>
+        </a>
         <a href="#calculator" class="nav-link">Rent Splitter</a>
         <a href="#how-it-works" class="nav-link">How It Works</a>
         <a href="#contact" class="nav-link">Contact</a>
@@ -622,7 +625,43 @@
   </section>
 
   <!-- ========================================================================
-       FAQ & Contact Section
+       4. How It Works Section
+       ======================================================================== -->
+  <section class="how-section" id="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Simple Process</span>
+        <h2 class="section-title">How Roommate Finder Works</h2>
+        <p class="section-subtitle">Find your ideal campus flatmate at R. C. Patel Shirpur in three hassle-free steps.</p>
+      </div>
+
+      <div class="how-grid">
+        <div class="how-card">
+          <div class="how-step-badge">Step 1</div>
+          <div class="how-icon-wrap">🎯</div>
+          <h3>Set Your Preferences</h3>
+          <p>Filter by Shirpur locality (Near College, Nimzari Naka, Karvand Road, etc.), monthly budget in ₹, and gender-separated rooms.</p>
+        </div>
+
+        <div class="how-card">
+          <div class="how-step-badge">Step 2</div>
+          <div class="how-icon-wrap">🤝</div>
+          <h3>Check Lifestyle Match</h3>
+          <p>Review student daily routines, sleep schedules (Night Owl vs Early Bird), food choices, and study habits to ensure zero conflict.</p>
+        </div>
+
+        <div class="how-card">
+          <div class="how-step-badge">Step 3</div>
+          <div class="how-icon-wrap">💬</div>
+          <h3>Connect & Split Costs</h3>
+          <p>Chat directly via verified WhatsApp or quick messaging, then use our built-in Rent Splitter to divide flat expenses fairly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================
+       5. FAQ & Contact Section
        ======================================================================== -->
   <section class="contact-section" id="contact">
     <div class="container">
@@ -640,7 +679,7 @@
 
         <div class="faq-item">
           <h4>Does my newly created profile stay saved?</h4>
-          <p>Yes! Profiles are saved directly inside your browser's persistent LocalStorage, so your listing remains available without needing any remote server or database.</p>
+          <p>Yes! Profiles are saved directly inside your browser's persistent LocalStorage and synced with the SQLite database when running with the backend server.</p>
         </div>
 
         <div class="faq-item">
@@ -649,8 +688,8 @@
         </div>
 
         <div class="faq-item">
-          <h4>Which college locations are supported?</h4>
-          <p>We feature student clusters across Maharashtra including Nashik, Pune, Mumbai, Jalgaon, Dhule, and Shirpur, covering engineering, medical, and arts colleges.</p>
+          <h4>Which Shirpur localities are covered?</h4>
+          <p>We specifically cover all primary student residential clusters around R. C. Patel campus in Shirpur including Near College, Nimzari Naka, Karvand Road, Kazi Nagar, Sandipani Colony, and Sandipani Colony 2.</p>
         </div>
       </div>
     </div>
@@ -761,6 +800,14 @@
         </div>
 
         <form id="directMessageForm">
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label" for="contactSenderName">Your Name</label>
+            <input type="text" class="form-control" id="contactSenderName" placeholder="e.g. Rahul Sharma" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label" for="contactSenderContact">Your WhatsApp / Mobile / Email (Optional)</label>
+            <input type="text" class="form-control" id="contactSenderContact" placeholder="e.g. +91 98230 12345 or rahul@rcpit.ac.in">
+          </div>
           <div class="form-group" style="margin-bottom: 1rem;">
             <label class="form-label" for="contactMessageInput">Your Message</label>
             <textarea class="form-control" id="contactMessageInput" rows="3" placeholder="Hi! I liked your roommate profile and wanted to discuss sharing a flat..." required></textarea>
@@ -769,6 +816,59 @@
             Send Quick Message 🚀
           </button>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Roommate Inbox / Received Messages Modal -->
+  <div class="modal-overlay" id="inboxModal" role="dialog" aria-modal="true" aria-labelledby="inboxModalTitle">
+    <div class="modal-content" style="max-width: 680px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <span style="font-size: 1.6rem;">📬</span>
+          <div>
+            <h3 id="inboxModalTitle" style="font-size: 1.15rem; font-weight: 700; margin: 0; line-height: 1.3;">
+              Roommate Inquiries & Messages
+            </h3>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">
+              Manage and reply to inquiries from students
+            </span>
+          </div>
+        </div>
+        <button class="modal-close-btn" aria-label="Close modal">&times;</button>
+      </div>
+      
+      <div class="inbox-toolbar">
+        <div class="inbox-picker-wrap">
+          <label for="inboxProfileSelect" class="inbox-picker-label">Viewing Inbox for:</label>
+          <select id="inboxProfileSelect" class="form-control inbox-picker-select">
+            <!-- Populated dynamically with roommate profiles -->
+          </select>
+        </div>
+        <button type="button" id="refreshInboxBtn" class="btn btn-secondary btn-sm" title="Refresh messages">
+          🔄 Refresh
+        </button>
+      </div>
+
+      <div class="modal-body inbox-modal-body">
+        <!-- Dynamic message cards injected via app.js -->
+        <div id="inboxMessageList" class="inbox-message-list"></div>
+
+        <!-- Empty state when no messages are found -->
+        <div id="inboxEmptyState" class="inbox-empty-state" style="display: none;">
+          <div class="inbox-empty-icon">📭</div>
+          <h4 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.35rem;">No Inquiries Yet</h4>
+          <p style="color: var(--text-muted); font-size: 0.875rem; max-width: 360px; margin: 0 auto;">
+            When students send messages or express interest in this roommate profile, their inquiries will appear here.
+          </p>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <span id="inboxCountSummary" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">
+          0 inquiries
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm modal-close-btn">Close</button>
       </div>
     </div>
   </div>
