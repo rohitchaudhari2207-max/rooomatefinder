@@ -11,6 +11,8 @@ const state = {
   selectedAvatar: "👨‍🎓",
   selectedInboxProfileId: null,
   inboxMessages: [],
+  currentUser: null,
+  authToken: localStorage.getItem("rcpit_student_token") || null,
   filters: {
     location: "all",
     gender: "all",
@@ -30,6 +32,8 @@ const state = {
 const STORAGE_PROFILES_KEY = "roommate_finder_profiles_rcpit_v5";
 const STORAGE_BOOKMARKS_KEY = "roommate_finder_bookmarks_v1";
 const STORAGE_MESSAGES_KEY = "roommate_finder_messages_v1";
+const STORAGE_AUTH_TOKEN_KEY = "rcpit_student_token";
+const STORAGE_CURRENT_USER_KEY = "rcpit_student_user";
 
 let isBackendActive = false;
 let currentContactProfileId = null;
@@ -40,8 +44,10 @@ let currentContactProfileId = null;
 document.addEventListener("DOMContentLoaded", async () => {
   initAvatarSelector();
   initEventListeners();
+  initAuthEventListeners();
   initRentCalculator();
   await checkBackendAndInit();
+  await initStudentAuthSession();
 });
 
 async function checkBackendAndInit() {
@@ -569,6 +575,10 @@ function renderProfilesGrid() {
     const genderBadge = isMale
       ? `<span class="tag-badge tag-gender-boy">👦 Boys Room (Male)</span>`
       : `<span class="tag-badge tag-gender-girl">👧 Girls Room (Female)</span>`;
+    const isVerified = Boolean(p.isRcpitVerified || (p.email && p.email.toLowerCase().endsWith('@rcpit.ac.in')));
+    const verifiedBadge = isVerified
+      ? `<span class="badge-verified-student" title="Verified RCPIT Student">🎓 Verified Student</span>`
+      : '';
 
     return `
       <article class="profile-card" data-id="${p.id}">
@@ -594,6 +604,7 @@ function renderProfilesGrid() {
             <h3 class="profile-name">${escapeHtml(p.name)}</h3>
             <span class="profile-age">${p.age} yrs</span>
           </div>
+          ${verifiedBadge ? `<div style="margin-top:-0.15rem; margin-bottom:0.4rem;">${verifiedBadge}</div>` : ''}
 
           <div class="profile-college" title="${escapeHtml(p.college)}">
             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -877,12 +888,21 @@ async function handleCreateProfile(e) {
     roomType: gender === "Female" ? "Girls Shared Room (Female Only)" : "Boys Shared Room (Male Only)"
   };
 
+  if (state.currentUser) {
+    newProfile.studentId = state.currentUser.id;
+    newProfile.isRcpitVerified = Boolean(state.currentUser.isRcpitVerified);
+  }
+
   // Persist to Backend API if active, with fallback to local state
   if (isBackendActive) {
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (state.authToken) {
+        headers['Authorization'] = `Bearer ${state.authToken}`;
+      }
       const res = await fetch('/api/profiles', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(newProfile)
       });
       if (res.ok) {
@@ -941,13 +961,17 @@ window.openProfileModal = function(id) {
 
   const foodClass = profile.foodPreference.toLowerCase() === "vegetarian" ? "tag-veg" 
                   : profile.foodPreference.toLowerCase() === "non-vegetarian" ? "tag-nonveg" : "tag-both";
+  const isVerified = Boolean(profile.isRcpitVerified || (profile.email && profile.email.toLowerCase().endsWith('@rcpit.ac.in')));
 
   modalBody.innerHTML = `
     <div class="modal-detail-hero">
       <div class="modal-avatar-lg">${profile.avatar || "👨‍🎓"}</div>
       <div class="modal-detail-info">
-        <h3>${escapeHtml(profile.name)}, ${profile.age}</h3>
-        <div class="college">${escapeHtml(profile.college)}</div>
+        <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+          <h3 style="margin-bottom:0;">${escapeHtml(profile.name)}, ${profile.age}</h3>
+          ${isVerified ? '<span class="badge-verified-student">🎓 Verified RCPIT Student</span>' : ''}
+        </div>
+        <div class="college" style="margin-top:0.35rem;">${escapeHtml(profile.college)}</div>
         <div class="location">📍 ${escapeHtml(profile.location)} &bull; ${escapeHtml(profile.gender || "Student")}</div>
       </div>
     </div>
@@ -1035,6 +1059,12 @@ window.openContactModal = function(id) {
   }
 
   if (modal) {
+    const nameInput = document.getElementById("contactSenderName");
+    const contactInput = document.getElementById("contactSenderContact");
+    if (state.currentUser) {
+      if (nameInput) nameInput.value = state.currentUser.name;
+      if (contactInput) contactInput.value = state.currentUser.email || state.currentUser.phone || "";
+    }
     modal.classList.add("active");
     document.body.style.overflow = "hidden";
   }
@@ -1420,4 +1450,550 @@ function initRentCalculator() {
   }
 
   calculate();
+}
+
+// ==========================================================================
+// Student Authentication & Session Management
+// ==========================================================================
+
+async function initStudentAuthSession() {
+  if (!state.authToken) {
+    updateAuthUI();
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/me', {
+      headers: { 'Authorization': `Bearer ${state.authToken}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      state.currentUser = data.student;
+      localStorage.setItem(STORAGE_CURRENT_USER_KEY, JSON.stringify(data.student));
+    } else {
+      state.authToken = null;
+      state.currentUser = null;
+      localStorage.removeItem(STORAGE_AUTH_TOKEN_KEY);
+      localStorage.removeItem(STORAGE_CURRENT_USER_KEY);
+    }
+  } catch (e) {
+    const cached = localStorage.getItem(STORAGE_CURRENT_USER_KEY);
+    if (cached) {
+      try { state.currentUser = JSON.parse(cached); } catch (_) {}
+    }
+  }
+  updateAuthUI();
+}
+
+function updateAuthUI() {
+  const navLoginBtn = document.getElementById("navLoginBtn");
+  const userChipWrap = document.getElementById("userChipWrap");
+  const userChipAvatar = document.getElementById("userChipAvatar");
+  const userChipName = document.getElementById("userChipName");
+  const dropdownUserName = document.getElementById("dropdownUserName");
+  const dropdownUserDept = document.getElementById("dropdownUserDept");
+  const authProfileAlert = document.getElementById("authProfileAlert");
+  const authAlertName = document.getElementById("authAlertName");
+  const authAlertDept = document.getElementById("authAlertDept");
+
+  if (state.currentUser) {
+    if (navLoginBtn) navLoginBtn.style.display = "none";
+    if (userChipWrap) userChipWrap.style.display = "inline-block";
+    if (userChipAvatar) userChipAvatar.textContent = state.currentUser.avatar || "👨‍🎓";
+    if (userChipName) userChipName.textContent = state.currentUser.name.split(" ")[0];
+    if (dropdownUserName) dropdownUserName.textContent = state.currentUser.name;
+    if (dropdownUserDept) dropdownUserDept.textContent = `${state.currentUser.department} • ${state.currentUser.year}`;
+
+    if (authProfileAlert) {
+      authProfileAlert.style.display = "flex";
+      if (authAlertName) authAlertName.textContent = state.currentUser.name;
+      if (authAlertDept) authAlertDept.textContent = state.currentUser.department;
+    }
+
+    // Auto-fill Create Profile form inputs
+    const fullNameInput = document.getElementById("fullName");
+    const emailInput = document.getElementById("email");
+    const phoneInput = document.getElementById("phone");
+    if (fullNameInput && !fullNameInput.value) fullNameInput.value = state.currentUser.name;
+    if (emailInput && !emailInput.value) emailInput.value = state.currentUser.email;
+    if (phoneInput && !phoneInput.value && state.currentUser.phone) phoneInput.value = state.currentUser.phone;
+  } else {
+    if (navLoginBtn) navLoginBtn.style.display = "inline-flex";
+    if (userChipWrap) userChipWrap.style.display = "none";
+    if (authProfileAlert) authProfileAlert.style.display = "none";
+  }
+}
+
+function initAuthEventListeners() {
+  const navLoginBtn = document.getElementById("navLoginBtn");
+  const userChipBtn = document.getElementById("userChipBtn");
+  const userDropdownMenu = document.getElementById("userDropdownMenu");
+  const tabLoginBtn = document.getElementById("tabLoginBtn");
+  const tabRegisterBtn = document.getElementById("tabRegisterBtn");
+  const loginForm = document.getElementById("studentLoginForm");
+  const registerForm = document.getElementById("studentRegisterForm");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const demoPranav = document.getElementById("demoLoginPranav");
+  const demoSneha = document.getElementById("demoLoginSneha");
+  const authModal = document.getElementById("authModal");
+
+  if (navLoginBtn) {
+    navLoginBtn.addEventListener("click", () => openAuthModal("login"));
+  }
+
+  if (userChipBtn && userDropdownMenu) {
+    userChipBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      userDropdownMenu.classList.toggle("active");
+    });
+    document.addEventListener("click", () => {
+      userDropdownMenu.classList.remove("active");
+    });
+  }
+
+  if (tabLoginBtn) {
+    tabLoginBtn.addEventListener("click", () => switchAuthTab("login"));
+  }
+  if (tabRegisterBtn) {
+    tabRegisterBtn.addEventListener("click", () => switchAuthTab("register"));
+  }
+
+  if (loginForm) {
+    loginForm.addEventListener("submit", handleStudentLogin);
+  }
+
+  if (registerForm) {
+    registerForm.addEventListener("submit", handleStudentRegister);
+  }
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", handleStudentLogout);
+  }
+
+  const dropdownAccountBtn = document.getElementById("dropdownAccountBtn");
+  if (dropdownAccountBtn) {
+    dropdownAccountBtn.addEventListener("click", () => openAccountModal("listings"));
+  }
+
+  if (demoPranav) {
+    demoPranav.addEventListener("click", () => {
+      document.getElementById("loginEmail").value = "pranav.borse@rcpit.ac.in";
+      document.getElementById("loginPassword").value = "rcpit123";
+      document.getElementById("loginSubmitBtn").click();
+    });
+  }
+
+  if (demoSneha) {
+    demoSneha.addEventListener("click", () => {
+      document.getElementById("loginEmail").value = "sneha.patil@rcpit.ac.in";
+      document.getElementById("loginPassword").value = "rcpit123";
+      document.getElementById("loginSubmitBtn").click();
+    });
+  }
+
+  if (authModal) {
+    authModal.querySelectorAll(".modal-close-btn").forEach(btn => {
+      btn.addEventListener("click", closeAuthModal);
+    });
+    authModal.addEventListener("click", (e) => {
+      if (e.target === authModal) closeAuthModal();
+    });
+  }
+
+  const accountModal = document.getElementById("accountModal");
+  if (accountModal) {
+    accountModal.querySelectorAll(".modal-close-btn").forEach(btn => {
+      btn.addEventListener("click", closeAccountModal);
+    });
+    accountModal.addEventListener("click", (e) => {
+      if (e.target === accountModal) closeAccountModal();
+    });
+
+    const tabListings = document.getElementById("tabAccountListingsBtn");
+    const tabProfile = document.getElementById("tabAccountProfileBtn");
+    const tabSecurity = document.getElementById("tabAccountSecurityBtn");
+    if (tabListings) tabListings.addEventListener("click", () => switchAccountTab("listings"));
+    if (tabProfile) tabProfile.addEventListener("click", () => switchAccountTab("profile"));
+    if (tabSecurity) tabSecurity.addEventListener("click", () => switchAccountTab("security"));
+
+    const updateProfileForm = document.getElementById("updateProfileForm");
+    if (updateProfileForm) updateProfileForm.addEventListener("submit", handleUpdateProfile);
+
+    const changePasswordForm = document.getElementById("changePasswordForm");
+    if (changePasswordForm) changePasswordForm.addEventListener("submit", handleChangePassword);
+  }
+}
+
+window.togglePasswordVisibility = function(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === "password") {
+    input.type = "text";
+    btn.textContent = "🙈";
+  } else {
+    input.type = "password";
+    btn.textContent = "👁️";
+  }
+};
+}
+
+function openAuthModal(tab = "login") {
+  const modal = document.getElementById("authModal");
+  if (!modal) return;
+  modal.classList.add("active");
+  document.body.style.overflow = "hidden";
+  switchAuthTab(tab);
+}
+
+function closeAuthModal() {
+  const modal = document.getElementById("authModal");
+  if (!modal) return;
+  modal.classList.remove("active");
+  document.body.style.overflow = "";
+}
+
+function switchAuthTab(tab) {
+  const tabLoginBtn = document.getElementById("tabLoginBtn");
+  const tabRegisterBtn = document.getElementById("tabRegisterBtn");
+  const loginPanel = document.getElementById("loginTabPanel");
+  const regPanel = document.getElementById("registerTabPanel");
+
+  if (tab === "login") {
+    if (tabLoginBtn) tabLoginBtn.classList.add("active");
+    if (tabRegisterBtn) tabRegisterBtn.classList.remove("active");
+    if (loginPanel) loginPanel.style.display = "block";
+    if (regPanel) regPanel.style.display = "none";
+  } else {
+    if (tabRegisterBtn) tabRegisterBtn.classList.add("active");
+    if (tabLoginBtn) tabLoginBtn.classList.remove("active");
+    if (regPanel) regPanel.style.display = "block";
+    if (loginPanel) loginPanel.style.display = "none";
+  }
+}
+
+async function handleStudentLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const submitBtn = document.getElementById("loginSubmitBtn");
+
+  if (!email || !password) {
+    showToast("Please enter both college email and password", "error");
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Verifying...";
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Login failed");
+    }
+
+    state.authToken = data.token;
+    state.currentUser = data.student;
+    localStorage.setItem(STORAGE_AUTH_TOKEN_KEY, data.token);
+    localStorage.setItem(STORAGE_CURRENT_USER_KEY, JSON.stringify(data.student));
+
+    updateAuthUI();
+    closeAuthModal();
+    showToast(`Welcome back, ${data.student.name.split(" ")[0]}! 🎓`, "success");
+  } catch (err) {
+    showToast(err.message || "Invalid credentials", "error");
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Sign In as Student 🚀";
+  }
+}
+
+async function handleStudentRegister(e) {
+  e.preventDefault();
+  const name = document.getElementById("regName").value.trim();
+  const email = document.getElementById("regEmail").value.trim();
+  const department = document.getElementById("regDept").value;
+  const year = document.getElementById("regYear").value;
+  const phone = document.getElementById("regPhone").value.trim();
+  const password = document.getElementById("regPassword").value;
+  const confirmPassword = document.getElementById("regConfirmPassword") ? document.getElementById("regConfirmPassword").value : "";
+  const submitBtn = document.getElementById("registerSubmitBtn");
+
+  if (!name || !email || !password) {
+    showToast("Please fill all required student details", "error");
+    return;
+  }
+
+  if (confirmPassword && password !== confirmPassword) {
+    showToast("Passwords do not match. Please re-enter.", "error");
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Creating Account...";
+
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        email,
+        department,
+        year,
+        phone,
+        password
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Registration failed");
+    }
+
+    state.authToken = data.token;
+    state.currentUser = data.student;
+    localStorage.setItem(STORAGE_AUTH_TOKEN_KEY, data.token);
+    localStorage.setItem(STORAGE_CURRENT_USER_KEY, JSON.stringify(data.student));
+
+    updateAuthUI();
+    closeAuthModal();
+    showToast(`Student account verified! Welcome, ${name.split(" ")[0]} 🎓`, "success");
+  } catch (err) {
+    showToast(err.message || "Registration failed", "error");
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Create Verified Student Account 🎓";
+  }
+}
+
+async function handleStudentLogout() {
+  state.authToken = null;
+  state.currentUser = null;
+  localStorage.removeItem(STORAGE_AUTH_TOKEN_KEY);
+  localStorage.removeItem(STORAGE_CURRENT_USER_KEY);
+
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' });
+  } catch (_) {}
+
+  updateAuthUI();
+  showToast("Logged out successfully. See you soon!", "info");
+}
+
+// ==========================================================================
+// Student Account Modal & Profile Management
+// ==========================================================================
+
+async function openAccountModal(tab = "listings") {
+  if (!state.currentUser) {
+    openAuthModal("login");
+    return;
+  }
+
+  const modal = document.getElementById("accountModal");
+  if (!modal) return;
+
+  const headerAvatar = document.getElementById("accountHeaderAvatar");
+  const headerSubtitle = document.getElementById("accountHeaderSubtitle");
+  if (headerAvatar) headerAvatar.textContent = state.currentUser.avatar || "👨‍🎓";
+  if (headerSubtitle) headerSubtitle.textContent = `${state.currentUser.email} • ${state.currentUser.department}`;
+
+  const accName = document.getElementById("accName");
+  const accEmail = document.getElementById("accEmail");
+  const accDept = document.getElementById("accDept");
+  const accYear = document.getElementById("accYear");
+  const accPhone = document.getElementById("accPhone");
+
+  if (accName) accName.value = state.currentUser.name;
+  if (accEmail) accEmail.value = state.currentUser.email;
+  if (accDept) accDept.value = state.currentUser.department;
+  if (accYear) accYear.value = state.currentUser.year;
+  if (accPhone) accPhone.value = state.currentUser.phone || "";
+
+  switchAccountTab(tab);
+  await loadAccountListings();
+
+  modal.classList.add("active");
+  document.body.style.overflow = "hidden";
+}
+
+function closeAccountModal() {
+  const modal = document.getElementById("accountModal");
+  if (!modal) return;
+  modal.classList.remove("active");
+  document.body.style.overflow = "";
+}
+
+function switchAccountTab(tab) {
+  const tabListings = document.getElementById("tabAccountListingsBtn");
+  const tabProfile = document.getElementById("tabAccountProfileBtn");
+  const tabSecurity = document.getElementById("tabAccountSecurityBtn");
+  const panelListings = document.getElementById("accountListingsPanel");
+  const panelProfile = document.getElementById("accountProfilePanel");
+  const panelSecurity = document.getElementById("accountSecurityPanel");
+
+  [tabListings, tabProfile, tabSecurity].forEach(t => t && t.classList.remove("active"));
+  [panelListings, panelProfile, panelSecurity].forEach(p => p && (p.style.display = "none"));
+
+  if (tab === "listings") {
+    if (tabListings) tabListings.classList.add("active");
+    if (panelListings) panelListings.style.display = "block";
+  } else if (tab === "profile") {
+    if (tabProfile) tabProfile.classList.add("active");
+    if (panelProfile) panelProfile.style.display = "block";
+  } else if (tab === "security") {
+    if (tabSecurity) tabSecurity.classList.add("active");
+    if (panelSecurity) panelSecurity.style.display = "block";
+  }
+}
+
+async function loadAccountListings() {
+  const container = document.getElementById("myListingsContainer");
+  if (!container) return;
+
+  if (!state.currentUser) {
+    container.innerHTML = '<p style="color:var(--text-muted); text-align:center;">Please log in to manage listings.</p>';
+    return;
+  }
+
+  const myListings = state.profiles.filter(p => 
+    (p.studentId && p.studentId === state.currentUser.id) ||
+    (p.email && p.email.toLowerCase() === state.currentUser.email.toLowerCase())
+  );
+
+  if (myListings.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:2.5rem 1rem;">
+        <div style="font-size:2.5rem; margin-bottom:0.5rem;">🏠</div>
+        <h4 style="font-size:1.05rem; font-weight:700; margin-bottom:0.35rem;">No Active Listings</h4>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">You haven't posted any roommate requests yet.</p>
+        <button class="btn btn-primary btn-sm" onclick="closeAccountModal(); scrollToSection('create-profile');">
+          + Create Roommate Listing
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = myListings.map(p => `
+    <div class="my-listing-card">
+      <div class="my-listing-info">
+        <h4>${p.avatar || '👨‍🎓'} ${escapeHtml(p.name)} - ${escapeHtml(p.roomType || 'Shared Room')}</h4>
+        <div class="my-listing-meta">
+          📍 ${escapeHtml(p.location)} &bull; ₹${p.monthlyBudget.toLocaleString('en-IN')}/mo &bull; Move-in: ${escapeHtml(p.moveInDate || 'Immediate')}
+        </div>
+      </div>
+      <div class="my-listing-actions">
+        <button class="btn btn-secondary btn-sm" onclick="closeAccountModal(); openProfileModal('${p.id}');">
+          View
+        </button>
+        <button class="btn-danger-outline" onclick="deleteMyListing('${p.id}')" title="Delete Listing">
+          🗑️ Delete
+        </button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function deleteMyListing(profileId) {
+  if (!confirm("Are you sure you want to remove this roommate listing?")) return;
+
+  try {
+    if (isBackendActive) {
+      const headers = {};
+      if (state.authToken) headers['Authorization'] = `Bearer ${state.authToken}`;
+      await fetch(`/api/profiles/${encodeURIComponent(profileId)}`, {
+        method: 'DELETE',
+        headers
+      });
+    }
+
+    state.profiles = state.profiles.filter(p => p.id !== profileId);
+    saveProfiles();
+    applyFilters();
+    await loadAccountListings();
+    showToast("Roommate listing deleted successfully", "info");
+  } catch (err) {
+    showToast("Failed to delete listing", "error");
+  }
+}
+
+async function handleUpdateProfile(e) {
+  e.preventDefault();
+  const name = document.getElementById("accName").value.trim();
+  const department = document.getElementById("accDept").value;
+  const year = document.getElementById("accYear").value;
+  const phone = document.getElementById("accPhone").value.trim();
+  const btn = document.getElementById("accSaveBtn");
+
+  btn.disabled = true;
+  btn.textContent = "Saving...";
+
+  try {
+    const res = await fetch('/api/auth/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.authToken}`
+      },
+      body: JSON.stringify({ name, department, year, phone })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Update failed");
+
+    state.currentUser = data.student;
+    localStorage.setItem(STORAGE_CURRENT_USER_KEY, JSON.stringify(data.student));
+    updateAuthUI();
+    showToast("Student profile updated successfully! 🎉", "success");
+  } catch (err) {
+    showToast(err.message || "Failed to update profile", "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Save Account Changes 💾";
+  }
+}
+
+async function handleChangePassword(e) {
+  e.preventDefault();
+  const oldPassword = document.getElementById("currentPassword").value;
+  const newPassword = document.getElementById("newPassword").value;
+  const confirmNewPassword = document.getElementById("confirmNewPassword").value;
+  const btn = document.getElementById("changePasswordBtn");
+
+  if (newPassword !== confirmNewPassword) {
+    showToast("New passwords do not match", "error");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Updating...";
+
+  try {
+    const res = await fetch('/api/auth/password', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.authToken}`
+      },
+      body: JSON.stringify({ oldPassword, newPassword })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Password change failed");
+
+    document.getElementById("changePasswordForm").reset();
+    showToast("Password updated successfully! 🔒", "success");
+  } catch (err) {
+    showToast(err.message || "Failed to change password", "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Update Password 🔒";
+  }
 }

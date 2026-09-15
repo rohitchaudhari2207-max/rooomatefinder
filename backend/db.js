@@ -4,6 +4,7 @@
  */
 
 const { DatabaseSync } = require('node:sqlite');
+const crypto = require('node:crypto');
 const path = require('path');
 const fs = require('fs');
 
@@ -23,8 +24,24 @@ db.exec('PRAGMA foreign_keys = ON;');
 // Initialize Tables
 function initSchema() {
   db.exec(`
+    CREATE TABLE IF NOT EXISTS students (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      salt TEXT NOT NULL,
+      prn TEXT,
+      department TEXT NOT NULL,
+      year TEXT NOT NULL,
+      phone TEXT,
+      avatar TEXT DEFAULT '👨‍🎓',
+      is_rcpit_verified INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS profiles (
       id TEXT PRIMARY KEY,
+      student_id TEXT,
       name TEXT NOT NULL,
       age INTEGER NOT NULL,
       gender TEXT NOT NULL,
@@ -62,7 +79,20 @@ function initSchema() {
     );
   `);
 
-  // Seed default profiles if empty
+  // Ensure student_id column exists on profiles table (for existing DB instances)
+  try {
+    const columns = db.prepare("PRAGMA table_info(profiles)").all();
+    const hasStudentId = columns.some(c => c.name === 'student_id');
+    if (!hasStudentId) {
+      db.exec('ALTER TABLE profiles ADD COLUMN student_id TEXT;');
+    }
+  } catch (e) {
+    console.error('Migration note:', e.message);
+  }
+
+  // Seed default students & profiles if empty
+  seedDefaultStudents();
+
   const countRow = db.prepare('SELECT COUNT(*) as count FROM profiles').get();
   if (countRow.count === 0) {
     seedDefaultProfiles();
@@ -371,8 +401,15 @@ function formatProfileRow(row) {
     habits = [];
   }
 
+  const isVerified = Boolean(
+    row.is_rcpit_verified !== undefined 
+      ? row.is_rcpit_verified 
+      : (row.email && row.email.toLowerCase().endsWith('@rcpit.ac.in'))
+  );
+
   return {
     id: row.id,
+    studentId: row.student_id || null,
     name: row.name,
     age: Number(row.age),
     gender: row.gender,
@@ -391,6 +428,7 @@ function formatProfileRow(row) {
     about: row.about,
     moveInDate: row.move_in_date,
     roomType: row.room_type,
+    isRcpitVerified: isVerified,
     createdAt: row.created_at
   };
 }
@@ -469,16 +507,17 @@ function createProfile(data) {
 
   const stmt = db.prepare(`
     INSERT INTO profiles (
-      id, name, age, gender, seeking_gender, avatar, college, location,
+      id, student_id, name, age, gender, seeking_gender, avatar, college, location,
       monthly_budget, food_preference, sleep_schedule, study_preference,
       lifestyle, habits, phone, email, about, move_in_date, room_type
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
   `);
 
   stmt.run(
     id,
+    data.studentId || null,
     data.name,
     Number(data.age),
     data.gender,
@@ -511,7 +550,7 @@ function updateProfile(id, data) {
 
   const stmt = db.prepare(`
     UPDATE profiles SET
-      name = ?, age = ?, gender = ?, seeking_gender = ?, avatar = ?,
+      student_id = ?, name = ?, age = ?, gender = ?, seeking_gender = ?, avatar = ?,
       college = ?, location = ?, monthly_budget = ?, food_preference = ?,
       sleep_schedule = ?, study_preference = ?, lifestyle = ?, habits = ?,
       phone = ?, email = ?, about = ?, move_in_date = ?, room_type = ?
@@ -519,6 +558,7 @@ function updateProfile(id, data) {
   `);
 
   stmt.run(
+    merged.studentId || null,
     merged.name,
     Number(merged.age),
     merged.gender,
@@ -631,8 +671,212 @@ function reseedDatabase() {
   db.exec('DELETE FROM messages;');
   db.exec('DELETE FROM bookmarks;');
   db.exec('DELETE FROM profiles;');
+  db.exec('DELETE FROM students;');
+  seedDefaultStudents();
   seedDefaultProfiles();
-  return { success: true, message: 'Database reset to default Shirpur profiles' };
+  return { success: true, message: 'Database reset to default Shirpur profiles and student accounts' };
+}
+
+// ============================================================================
+// Student Authentication & Accounts
+// ============================================================================
+
+function hashPassword(password, salt = null) {
+  if (!salt) {
+    salt = crypto.randomBytes(16).toString('hex');
+  }
+  const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+  return { salt, hash };
+}
+
+function verifyPassword(password, salt, storedHash) {
+  try {
+    const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+    return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(storedHash));
+  } catch (e) {
+    return false;
+  }
+}
+
+function seedDefaultStudents() {
+  const countRow = db.prepare('SELECT COUNT(*) as count FROM students').get();
+  if (countRow.count === 0) {
+    const defaultPassword = 'rcpit123';
+
+    // Pranav Borse - RCPIT Final Year Computer Student
+    const p1 = hashPassword(defaultPassword);
+    db.prepare(`
+      INSERT INTO students (id, name, email, password_hash, salt, prn, department, year, phone, avatar, is_rcpit_verified)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      'stud-rcp-101',
+      'Pranav Borse',
+      'pranav.borse@rcpit.ac.in',
+      p1.hash,
+      p1.salt,
+      'PRN2021010045',
+      'Computer Engineering',
+      'Final Year',
+      '+91 94030 55112',
+      '👨‍💻',
+      1
+    );
+
+    // Sneha Patil - RCPIT Third Year IT Student
+    const p2 = hashPassword(defaultPassword);
+    db.prepare(`
+      INSERT INTO students (id, name, email, password_hash, salt, prn, department, year, phone, avatar, is_rcpit_verified)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      'stud-rcp-102',
+      'Sneha Patil',
+      'sneha.patil@rcpit.ac.in',
+      p2.hash,
+      p2.salt,
+      'PRN2022010112',
+      'Information Technology',
+      'Third Year',
+      '+91 98221 44230',
+      '👩‍🔬',
+      1
+    );
+
+    // Link initial seeded profiles to student accounts
+    try {
+      db.prepare('UPDATE profiles SET student_id = ? WHERE id = ?').run('stud-rcp-101', 'rcp-101');
+      db.prepare('UPDATE profiles SET student_id = ? WHERE id = ?').run('stud-rcp-102', 'rcp-102');
+    } catch (e) {
+      // Ignored if profiles not yet created
+    }
+  }
+}
+
+function registerStudent(data) {
+  const id = `stud-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const cleanEmail = (data.email || '').trim().toLowerCase();
+
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('Valid college or personal email address is required');
+  }
+
+  // Check if student exists
+  const existing = db.prepare('SELECT id FROM students WHERE LOWER(email) = ?').get(cleanEmail);
+  if (existing) {
+    throw new Error('An account with this student email already exists. Please log in.');
+  }
+
+  if (!data.password || data.password.length < 6) {
+    throw new Error('Password must be at least 6 characters long');
+  }
+
+  const { salt, hash } = hashPassword(data.password);
+  const isRcpit = cleanEmail.endsWith('@rcpit.ac.in') || (data.prn && data.prn.trim().length >= 4);
+
+  const stmt = db.prepare(`
+    INSERT INTO students (
+      id, name, email, password_hash, salt, prn, department, year, phone, avatar, is_rcpit_verified
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    id,
+    data.name ? data.name.trim() : 'RCPIT Student',
+    cleanEmail,
+    hash,
+    salt,
+    data.prn ? data.prn.trim() : null,
+    data.department || 'Computer Engineering',
+    data.year || 'Second Year',
+    data.phone ? data.phone.trim() : null,
+    data.avatar || '👨‍🎓',
+    isRcpit ? 1 : 0
+  );
+
+  return getStudentById(id);
+}
+
+function getStudentById(id) {
+  const row = db.prepare('SELECT id, name, email, prn, department, year, phone, avatar, is_rcpit_verified, created_at FROM students WHERE id = ?').get(id);
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    prn: row.prn,
+    department: row.department,
+    year: row.year,
+    phone: row.phone,
+    avatar: row.avatar,
+    isRcpitVerified: Boolean(row.is_rcpit_verified),
+    createdAt: row.created_at
+  };
+}
+
+function getStudentByEmail(email) {
+  const cleanEmail = (email || '').trim().toLowerCase();
+  return db.prepare('SELECT * FROM students WHERE LOWER(email) = ?').get(cleanEmail);
+}
+
+function verifyStudentPassword(email, password) {
+  const student = getStudentByEmail(email);
+  if (!student) return null;
+  const valid = verifyPassword(password, student.salt, student.password_hash);
+  if (!valid) return null;
+  return getStudentById(student.id);
+}
+
+function getProfilesByStudentId(studentId) {
+  const rows = db.prepare('SELECT * FROM profiles WHERE student_id = ? ORDER BY created_at DESC').all(studentId);
+  return rows.map(formatProfileRow);
+}
+
+function updateStudentProfile(id, data) {
+  const existing = getStudentById(id);
+  if (!existing) return null;
+
+  const stmt = db.prepare(`
+    UPDATE students SET
+      name = ?, department = ?, year = ?, phone = ?, avatar = ?
+    WHERE id = ?
+  `);
+
+  stmt.run(
+    data.name ? data.name.trim() : existing.name,
+    data.department || existing.department,
+    data.year || existing.year,
+    data.phone !== undefined ? data.phone : existing.phone,
+    data.avatar || existing.avatar,
+    id
+  );
+
+  return getStudentById(id);
+}
+
+function changeStudentPassword(id, oldPassword, newPassword) {
+  const row = db.prepare('SELECT * FROM students WHERE id = ?').get(id);
+  if (!row) throw new Error('Student not found');
+
+  const valid = verifyPassword(oldPassword, row.salt, row.password_hash);
+  if (!valid) throw new Error('Current password does not match');
+
+  if (!newPassword || newPassword.length < 6) {
+    throw new Error('New password must be at least 6 characters long');
+  }
+
+  const { salt, hash } = hashPassword(newPassword);
+  db.prepare('UPDATE students SET password_hash = ?, salt = ? WHERE id = ?').run(hash, salt, id);
+  return true;
+}
+
+function getMessagesForStudent(studentId) {
+  const stmt = db.prepare(`
+    SELECT m.*, p.name as profile_name, p.room_type 
+    FROM messages m
+    JOIN profiles p ON m.profile_id = p.id
+    WHERE p.student_id = ?
+    ORDER BY m.created_at DESC
+  `);
+  return stmt.all(studentId);
 }
 
 // Initialize on require
@@ -651,6 +895,14 @@ module.exports = {
   getAllMessages,
   deleteMessage,
   getStats,
-  reseedDatabase
+  reseedDatabase,
+  registerStudent,
+  getStudentById,
+  getStudentByEmail,
+  verifyStudentPassword,
+  getProfilesByStudentId,
+  updateStudentProfile,
+  changeStudentPassword,
+  getMessagesForStudent
 };
 
